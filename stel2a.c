@@ -14,9 +14,9 @@ int main(int argc, char** argv){
     double lambda, dm; //,delta;
     // double tempo_ev;
     int nr_amostras = 0, n_recursos, tamanho_espera=0, espera_ocupada=0; //, N_HIST;
-    int recursos_ocupados = 0, bloqueadas = 0;
+    int recursos_ocupados = 0, bloqueadas = 0, nr_atrasadas = 0;
 
-    double ultima_chegada = 0;
+    double ultima_chegada = 0, delay = 0;
 
     //if (parse_input(argc, argv, &lambda,&nr_amostras,&delta,&N_HIST,&n_recursos)) return -1;
     if(parse_input2(argc, argv, &lambda, &dm, &nr_amostras, &n_recursos, &tamanho_espera)) return -1;
@@ -26,7 +26,7 @@ int main(int argc, char** argv){
 
     for (int i = 0; i < nr_amostras; i++){
         ultima_chegada = gerarEvento(&lista_eventos, &lista_partidas, &lista_espera, lambda, dm, ultima_chegada, 
-                                     &recursos_ocupados, &bloqueadas, n_recursos, tamanho_espera, &espera_ocupada);
+                                     &recursos_ocupados, &bloqueadas, n_recursos, tamanho_espera, &espera_ocupada, &nr_atrasadas, &delay);
         //if (c >= (N_HIST-1)*delta) histograma[N_HIST-1]++;
         //else histograma[(int)(c/delta)]++;
     }
@@ -37,7 +37,10 @@ int main(int argc, char** argv){
     //imprimir(lista_partidas);
     //printf("Intervalo medio entre chegada de eventos: %lf\n", ultima_chegada/N_HIST);
     printf("Numero de bloqueadas: %d\n", bloqueadas);
-    printf("Probabilidade de bloqueio: %f\n\n", ((double)bloqueadas/nr_amostras)*100.0);
+    printf("Probabilidade de bloqueio: %f\n", ((double)bloqueadas/nr_amostras)*100.0);
+    printf("Numero de atrasadas: %d\n", nr_atrasadas);
+    printf("Probabilidade de atraso: %f\n", ((double)nr_atrasadas/nr_amostras)*100.0);
+    printf("Atraso medio: %f\n\n", ((double)delay/nr_amostras));
     /*
 	printf("Escrever ficheiro CSV? [y/N]  ");
 	char ans = getchar();

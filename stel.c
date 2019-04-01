@@ -62,30 +62,53 @@ int parse_input2(int argc, char** argv, double *lambda, double *dm, int *sample_
     return 0;
 }
 // &lista_eventos, &lista_partidas, &lista_espera, lambda, dm, ultima_chegada, &recursos_ocupados, &bloqueadas, n_recursos, tamanho_espera
-double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_espera, double lambda, double dm, double ultima_chegada, int *recursos_ocupados, int *bloqueadas, int n_recursos, int tamanho_espera, int *espera_ocupada){
+double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_espera, double lambda, double dm, double ultima_chegada, 
+                   int *recursos_ocupados, int *bloqueadas, int n_recursos, int tamanho_espera, int *espera_ocupada, int *nr_atrasadas, double *delay){
     double u_c = ((double)rand())/RAND_MAX;
     double c = -(1.0/lambda)*log(u_c);		// Intervalo para proxima chegada
+    double tempo_recurso_libertado = 0;
     
     double partida_a_libertar = (*lista_partidas == NULL)?(ultima_chegada+c+1):((*lista_partidas)->tempo);
     if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
+
     while (partida_a_libertar < (ultima_chegada+c)){
         (*recursos_ocupados)--;
+        tempo_recurso_libertado = (*lista_partidas)->tempo;
         *lista_partidas = remover(*lista_partidas);
+
+        if (*espera_ocupada){
+            (*delay) += tempo_recurso_libertado - (*lista_espera)->tempo;
+            *lista_espera = remover(*lista_espera);
+            *lista_ev = adicionar(*lista_ev, CHEGADA, tempo_recurso_libertado);
+            
+            double u_d = ((double)rand())/RAND_MAX;
+            double d = -dm*log(u_d);      // Duracao da chamada
+            *lista_ev = adicionar(*lista_ev, PARTIDA, tempo_recurso_libertado+d);
+            *lista_partidas = adicionar(*lista_partidas, PARTIDA, tempo_recurso_libertado+d);
+
+            (*espera_ocupada)--;
+            (*recursos_ocupados)++;
+        }
+
         if (*lista_partidas == NULL)
             break;
         partida_a_libertar = (*lista_partidas)->tempo;
     }
 
-    // LIMPAR LISTA DE ESPERA, SE POSSIVEL
+
+    /*
+    // LIMPAR LISTA DE ESPERA, SE POSSIVEL (?)
     while ((*espera_ocupada) && (*recursos_ocupados < n_recursos)){
         // delay = ultima_chegada+c-((*lista_espera)->tempo);
         *lista_ev = adicionar(*lista_ev, CHEGADA, ultima_chegada+c);
         (*espera_ocupada)--;
         (*recursos_ocupados)++;
     }
+    */
 
     if (*recursos_ocupados >= n_recursos){
         // Adicionar a lista de espera, ou bloquear
+        (*nr_atrasadas)++;
         if ((*espera_ocupada) < tamanho_espera){
             (*espera_ocupada)++;
             *lista_espera = adicionar(*lista_espera, CHEGADA, ultima_chegada+c);
