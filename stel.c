@@ -1,25 +1,30 @@
 #include "stel.h"
 #include "list.h"
 
+static int is_verbose = 0;
+
 int parse_input(int argc, char** argv, double * lambda, int * nr_amostras, double * delta, int * N_HIST, int * N_resources){
 
     if (argc < 5){
-        printf("Usage: LAMBDA NR_SAMPLES DELTA_HIST N_HIST N_RESOURCES\n");
+        printf("Usage: <-opt> LAMBDA NR_SAMPLES DELTA_HIST N_HIST N_RESOURCES\n  -v\t Make the program verbose\n");
         return -1;
     }
-    *lambda = atof(argv[1]);
-    *nr_amostras = atoi(argv[2]);
-    *delta = atof(argv[3]);
+    if(argc == 6){
+        if((argv[1][0] == '-') && (argv[1][1] == 'v')) is_verbose = 1; 
+    }
+    *lambda = atof(argv[1+is_verbose]);
+    *nr_amostras = atoi(argv[2 + is_verbose]);
+    *delta = atof(argv[3 + is_verbose]);
     if ((*delta) > (0.2/(*lambda))){
         printf("DELTA or LAMBDA too big.\n");
         return -1;
     }
-    *N_HIST = atoi(argv[4]);
+    *N_HIST = atoi(argv[4 + is_verbose]);
     if ((*N_HIST-2)*(*delta) < 5*(1.0/(*lambda))){
         printf("N_HIST too small.\n");
         return -1;
     }
-	*N_resources = atoi(argv[5]);
+	*N_resources = atoi(argv[5 + is_verbose]);
     if (*N_resources < 0){
         printf("Resources cannot be negative.\n");
         return -1;
@@ -30,15 +35,18 @@ int parse_input(int argc, char** argv, double * lambda, int * nr_amostras, doubl
 int parse_input2(int argc, char** argv, double *lambda, double *dm, int *sample_nr, int *resource_nr, int *waiting_length){
 
     if (argc < 6){
-        printf("Usage: ArrivalRate AverageDuration NrOfSamples NrOfResources WaitingListLength\n");
+        printf("Usage: <-opt> ArrivalRate AverageDuration NrOfSamples NrOfResources WaitingListLength\n  -v\t Make the program verbose\n");
         return -1;
     }
+    if(argc == 7){
+        if((argv[1][0] == '-') && (argv[1][1] == 'v')) is_verbose = 1; 
+    }
 
-    *lambda = atof(argv[1]);
-    *dm = atof(argv[2]);
-    *sample_nr = atoi(argv[3]);
-    *resource_nr = atoi(argv[4]);
-    *waiting_length = atoi(argv[5]);
+    *lambda = atof(argv[1 + is_verbose]);
+    *dm = atof(argv[2 + is_verbose]);
+    *sample_nr = atoi(argv[3 + is_verbose]);
+    *resource_nr = atoi(argv[4 + is_verbose]);
+    *waiting_length = atoi(argv[5 + is_verbose]);
     
     /*
     if ((*delta) > (0.2/(*lambda))){
@@ -59,7 +67,7 @@ double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_esper
     double c = -(1.0/lambda)*log(u_c);		// Intervalo para proxima chegada
     
     double partida_a_libertar = (*lista_partidas == NULL)?(ultima_chegada+c+1):((*lista_partidas)->tempo);
-    printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
+    if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
     while (partida_a_libertar < (ultima_chegada+c)){
         (*recursos_ocupados)--;
         *lista_partidas = remover(*lista_partidas);
