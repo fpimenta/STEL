@@ -1,0 +1,22 @@
+HEADERS = stel.o list.o
+
+CFLAGS=-Wall -Wextra -Wformat-security -Wswitch-default -O3 -Ofast
+LIBS=-lm
+
+default: stel2a
+
+list.o: 
+	gcc -c list.c -o list.o
+
+stel.o:
+	gcc -c stel.c -o stel.o
+
+stel2a.o: stel2a.c $(HEADERS)
+	gcc -c stel2a.c  -o stel2a.o
+
+stel2a: stel2a.o
+	gcc stel2a.o list.o stel.o -o stel2a $(CFLAGS) $(LIBS)
+
+clean:
+	-rm -f *.o
+	-rm -f stel2a
