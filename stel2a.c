@@ -36,7 +36,8 @@ int main(int argc, char** argv){
     //printf("Lista partidas\n");
     //imprimir(lista_partidas);
     //printf("Intervalo medio entre chegada de eventos: %lf\n", ultima_chegada/N_HIST);
-    printf("Numero de bloqueadas: %d\n\n", bloqueadas);
+    printf("Numero de bloqueadas: %d\n", bloqueadas);
+    printf("Probabilidade de bloqueio: %f\n\n", ((double)bloqueadas/nr_amostras)*100.0);
     /*
 	printf("Escrever ficheiro CSV? [y/N]  ");
 	char ans = getchar();
