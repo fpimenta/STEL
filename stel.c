@@ -3,65 +3,114 @@
 
 static int is_verbose = 0;
 
-int parse_input(int argc, char** argv, double * lambda, int * nr_amostras, double * delta, int * N_HIST, int * N_resources){
+int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_nr, int *resource_nr, int *waiting_length){
+    extern char *optarg;
+    extern int optind, opterr, optopt;
+    int args_obrigatorios = 5, c;
 
-    if (argc < 5){
-        printf("Usage: <-opt> LAMBDA NR_SAMPLES DELTA_HIST N_HIST N_RESOURCES\n  -v\t Make the program verbose\n");
-        return -1;
-    }
-    if(argc == 6){
-        if((argv[1][0] == '-') && (argv[1][1] == 'v')) is_verbose = 1; 
-    }
-    *lambda = atof(argv[1+is_verbose]);
-    *nr_amostras = atoi(argv[2 + is_verbose]);
-    *delta = atof(argv[3 + is_verbose]);
-    if ((*delta) > (0.2/(*lambda))){
-        printf("DELTA or LAMBDA too big.\n");
-        return -1;
-    }
-    *N_HIST = atoi(argv[4 + is_verbose]);
-    if ((*N_HIST-2)*(*delta) < 5*(1.0/(*lambda))){
-        printf("N_HIST too small.\n");
-        return -1;
-    }
-	*N_resources = atoi(argv[5 + is_verbose]);
-    if (*N_resources < 0){
-        printf("Resources cannot be negative.\n");
+    while ((c = getopt (argc, argv, "a:d:s:r:w:vh")) != -1)
+    switch (c) {
+        case 'h':
+            printf("\n"UNDERLI"\tDiscrete Event Traffic Simulation - STEL 2018/2019 @ FEUP"END_UND);
+            printf("\n\nUsage: %s\t{-a ArrivalRate} {-d AverageDuration} {-s NrOfSamples}\n"
+                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v]\n"
+                   "\n\t-v\tMakes the program verbose\n\n", argv[0]);
+            return -1;
+        case 'a':
+            args_obrigatorios--;
+            *lambda = atof(optarg);
+            break;
+        case 'd':
+            args_obrigatorios--;
+            *dm = atof(optarg);
+            break;
+        case 's':
+            args_obrigatorios--;
+            *sample_nr = atoi(optarg);
+            break;
+        case 'r':
+            args_obrigatorios--;
+            *resource_nr = atoi(optarg);
+            break;
+        case 'w':
+            args_obrigatorios--;
+            *waiting_length = atoi(optarg);
+            break;
+        case 'v':
+            is_verbose = 1;
+            break;
+        case '?':
+            if (optopt == 'a' || optopt == 'd' || optopt == 's' || optopt == 'r' || optopt == 'w')
+                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+            else if (isprint (optopt))
+                fprintf (stderr, "Unknown option `-%c'. Use -h for help.\n", optopt);
+            else
+                fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+            return 1;
+        default:
+            abort ();
+        }
+    if (args_obrigatorios > 0){
+        printf("Not all values were specified. Use -h for help. Quitting...\n");
         return -1;
     }
     return 0;
 }
 
-int parse_input2(int argc, char** argv, double *lambda, double *dm, int *sample_nr, int *resource_nr, int *waiting_length){
+int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
+    extern char *optarg;
+    extern int optind, opterr, optopt;
+    int args_obrigatorios = 5, c;
 
-    if (argc < 6){
-        printf("Usage: <-opt> ArrivalRate AverageDuration NrOfSamples NrOfResources WaitingListLength\n  -v\t Make the program verbose\n");
+    while ((c = getopt (argc, argv, "a:d:s:r:w:vh")) != -1)
+    switch (c) {
+        case 'h':
+            printf("\n"UNDERLI"\tDiscrete Event Traffic Simulation - STEL 2018/2019 @ FEUP"END_UND);
+            printf("\n\nUsage: %s\t{-a ArrivalRate} {-d AverageDuration} {-s NrOfSamples}\n"
+                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v]\n"
+                   "\n\t-v\tMakes the program verbose\n\n", argv[0]);
+            return -1;
+        case 'a':
+            args_obrigatorios--;
+            (*simulacao_atual).taxa_chegada = atof(optarg);
+            break;
+        case 'd':
+            args_obrigatorios--;
+            (*simulacao_atual).duracao_media = atof(optarg);
+            break;
+        case 's':
+            args_obrigatorios--;
+            (*simulacao_atual).nr_amostras = atoi(optarg);
+            break;
+        case 'r':
+            args_obrigatorios--;
+            (*simulacao_atual).nr_recursos = atoi(optarg);
+            break;
+        case 'w':
+            args_obrigatorios--;
+            (*simulacao_atual).tamanho_espera = atoi(optarg);
+            break;
+        case 'v':
+            is_verbose = 1;
+            break;
+        case '?':
+            if (optopt == 'a' || optopt == 'd' || optopt == 's' || optopt == 'r' || optopt == 'w')
+                fprintf (stderr, "Option -%c requires an argument.\n", optopt);
+            else if (isprint (optopt))
+                fprintf (stderr, "Unknown option `-%c'. Use -h for help.\n", optopt);
+            else
+                fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+            return 1;
+        default:
+            abort ();
+        }
+    if (args_obrigatorios > 0){
+        printf("Not all values were specified. Use -h for help. Quitting...\n");
         return -1;
     }
-    if(argc == 7){
-        if((argv[1][0] == '-') && (argv[1][1] == 'v')) is_verbose = 1; 
-    }
-
-    *lambda = atof(argv[1 + is_verbose]);
-    *dm = atof(argv[2 + is_verbose]);
-    *sample_nr = atoi(argv[3 + is_verbose]);
-    *resource_nr = atoi(argv[4 + is_verbose]);
-    *waiting_length = atoi(argv[5 + is_verbose]);
-    
-    /*
-    if ((*delta) > (0.2/(*lambda))){
-        printf("DELTA or LAMBDA too big.\n");
-        return -1;
-    }
-    *N_HIST = atoi(argv[4]);
-    if ((*N_HIST-2)*(*delta) < 5*(1.0/(*lambda))){
-        printf("N_HIST too small.\n");
-        return -1;
-    }
-    */
     return 0;
 }
-// &lista_eventos, &lista_partidas, &lista_espera, lambda, dm, ultima_chegada, &recursos_ocupados, &bloqueadas, n_recursos, tamanho_espera
+
 double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_espera, double lambda, double dm, double ultima_chegada, 
                    int *recursos_ocupados, int *bloqueadas, int n_recursos, int tamanho_espera, int *espera_ocupada, int *nr_atrasadas, double *delay){
     double u_c = ((double)rand())/RAND_MAX;
@@ -132,6 +181,70 @@ double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_esper
     // else histograma[(int)(c/delta)]++;
     // FIM DE HISTOGRAMA
 }
+
+
+double gerarEvento2(struct simulacao *simulacao_atual, double ultima_chegada, double *delay){
+    double u_c = ((double)rand())/RAND_MAX;
+    double c = -(1.0/ (*simulacao_atual).taxa_chegada )*log(u_c);		// Intervalo para proxima chegada
+    double tempo_recurso_libertado = 0;
+    
+    double partida_a_libertar = ( (*simulacao_atual).lista_recursos == NULL)?(ultima_chegada+c+1):( ((lista*)(*simulacao_atual).lista_recursos)->tempo);
+    if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
+
+    while (partida_a_libertar < (ultima_chegada+c)){
+        (*simulacao_atual).recursos_ocupados--;
+        tempo_recurso_libertado = ((lista*)(*simulacao_atual).lista_recursos)->tempo;
+        (*simulacao_atual).lista_recursos = remover((*simulacao_atual).lista_recursos);
+
+        if ((*simulacao_atual).lista_espera_ocupada){
+            (*delay) += tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
+            (*simulacao_atual).lista_espera = remover((*simulacao_atual).lista_espera);
+            (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, CHEGADA, tempo_recurso_libertado);
+            
+            double u_d = ((double)rand())/RAND_MAX;
+            double d = -(*simulacao_atual).duracao_media*log(u_d);      // Duracao da chamada
+            (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, PARTIDA, tempo_recurso_libertado+d);
+            (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA, tempo_recurso_libertado+d);
+
+            (*simulacao_atual).lista_espera_ocupada--;
+            (*simulacao_atual).recursos_ocupados++;
+        }
+
+        if ((*simulacao_atual).lista_recursos == NULL)
+            break;
+        partida_a_libertar = ((lista*)(*simulacao_atual).lista_recursos)->tempo;
+    }
+
+    if ((*simulacao_atual).recursos_ocupados >= (*simulacao_atual).nr_recursos){
+        // Adicionar a lista de espera, ou bloquear
+        (*simulacao_atual).nr_atrasadas++;
+        if ((*simulacao_atual).lista_espera_ocupada < (*simulacao_atual).tamanho_espera){
+            (*simulacao_atual).lista_espera_ocupada++;
+            (*simulacao_atual).lista_espera = adicionar((*simulacao_atual).lista_espera, CHEGADA, ultima_chegada+c);
+        } else {
+            (*simulacao_atual).nr_bloqueadas++;
+        }
+        //(*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, BLOQUEA, ultima_chegada+c);
+    } else {
+        // Adicionar chegada, ocupar recurso, gerar partida
+        (*simulacao_atual).recursos_ocupados++;
+        (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, CHEGADA, ultima_chegada+c);
+
+        double u_d = ((double)rand())/RAND_MAX;
+        double d = -(*simulacao_atual).duracao_media*log(u_d);      // Duracao da chamada
+        (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, PARTIDA, ultima_chegada+c+d);
+        (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA, ultima_chegada+c+d);
+    }
+    return ultima_chegada+c;
+    // HISTOGRAMA
+    // if (c >= (N_HIST-1)*delta) histograma[N_HIST-1]++;
+    // else histograma[(int)(c/delta)]++;
+    // FIM DE HISTOGRAMA
+}
+
+
+
+
 
 int print_hist(char * csv_file){
     char cmd[255];
