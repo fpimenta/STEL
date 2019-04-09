@@ -7,9 +7,11 @@
 
 int main(int argc, char** argv){
     struct simulacao simulacao_atual;
+    pthread_t printProg_thr;
+
     simulacao_atual = (struct simulacao) {
         .lista_eventos = NULL, .lista_espera = NULL, .lista_recursos = NULL,
-        .nr_amostras = 0, .tamanho_espera = 0, .recursos_ocupados = 0,
+        .nr_amostras = 0,.nr_processadas = 0, .tamanho_espera = 0, .recursos_ocupados = 0,
         .lista_espera_ocupada = 0, .nr_bloqueadas = 0, .nr_atrasadas = 0
     };
 
@@ -18,10 +20,18 @@ int main(int argc, char** argv){
     if(parse_input2(argc, argv, &simulacao_atual)){
         return -1;
     }
-    srand(1);
 
-    for (int i = 0; i < simulacao_atual.nr_amostras; i++)
+    if(!is_random)srand(1); // Use always the same seed for debugging purposes
+    else srand(time(NULL));
+
+
+    pthread_create(&printProg_thr, NULL, print_prog, &simulacao_atual);
+    
+    for (int i = 0; i < simulacao_atual.nr_amostras; i++){
         ultima_chegada = gerarEvento2(&simulacao_atual, ultima_chegada, &delay);
+    }
+
+    pthread_join(printProg_thr, NULL);
     
 
     //printf("\nLISTA ACTUAL\n");
@@ -34,6 +44,7 @@ int main(int argc, char** argv){
     printf("Numero de atrasadas: %d\n", simulacao_atual.nr_atrasadas);
     printf("Probabilidade de atraso: %f\n", ((double)simulacao_atual.nr_atrasadas/simulacao_atual.nr_amostras)*100.0);
     printf("Atraso medio: %f\n\n", ((double)delay/simulacao_atual.nr_amostras));
+
     /*
 	printf("Escrever ficheiro CSV? [y/N]  ");
 	char ans = getchar();

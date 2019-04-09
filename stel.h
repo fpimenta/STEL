@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
+#include <sys/time.h>
+#include <pthread.h>
+#include <sched.h>
 #include "list.h"
 #ifndef STEL_H
 #define STEL_H
@@ -13,6 +17,9 @@
 #define UNDERLI "\033[4m"
 #define END_UND "\033[0m"
 
+extern int is_verbose;
+extern int is_random;
+
 struct simulacao {
 	struct lista * lista_eventos;
     struct lista * lista_espera;
@@ -20,6 +27,7 @@ struct simulacao {
     double taxa_chegada;
     double duracao_media;
     int nr_amostras;
+    int nr_processadas;
     int nr_recursos;
     int tamanho_espera;
     int recursos_ocupados;
@@ -29,6 +37,7 @@ struct simulacao {
 };
 
 int print_hist(char * csv_file);
+void *print_prog( void * data_ptr);
 void print_csv(int * hist, int hist_size ,char * csv_file);
 int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_nr, int *resource_nr, int *waiting_length);
 int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual);

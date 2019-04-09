@@ -1,20 +1,23 @@
 #include "stel.h"
 #include "list.h"
 
-static int is_verbose = 0;
+
+int is_verbose = 0;
+int is_random = 0;
 
 int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_nr, int *resource_nr, int *waiting_length){
     extern char *optarg;
     extern int optind, opterr, optopt;
     int args_obrigatorios = 5, c;
 
-    while ((c = getopt (argc, argv, "a:d:s:r:w:vh")) != -1)
+    while ((c = getopt (argc, argv, "a:d:s:r:w:vch")) != -1)
     switch (c) {
         case 'h':
             printf("\n"UNDERLI"\tDiscrete Event Traffic Simulation - STEL 2018/2019 @ FEUP"END_UND);
             printf("\n\nUsage: %s\t{-a ArrivalRate} {-d AverageDuration} {-s NrOfSamples}\n"
-                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v]\n"
-                   "\n\t-v\tMakes the program verbose\n\n", argv[0]);
+                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v] [-c]\n"
+                   "\n\t-v\tMakes the program verbose\n\n"
+		   "\n\t-c\tSeed the PRNG with the current system time\n\n", argv[0]);
             return -1;
         case 'a':
             args_obrigatorios--;
@@ -39,6 +42,9 @@ int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_n
         case 'v':
             is_verbose = 1;
             break;
+	    case 'c':
+	        is_random = 1;
+	        break;
         case '?':
             if (optopt == 'a' || optopt == 'd' || optopt == 's' || optopt == 'r' || optopt == 'w')
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -54,6 +60,7 @@ int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_n
         printf("Not all values were specified. Use -h for help. Quitting...\n");
         return -1;
     }
+
     return 0;
 }
 
@@ -62,13 +69,14 @@ int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
     extern int optind, opterr, optopt;
     int args_obrigatorios = 5, c;
 
-    while ((c = getopt (argc, argv, "a:d:s:r:w:vh")) != -1)
+    while ((c = getopt (argc, argv, "a:d:s:r:w:vch")) != -1)
     switch (c) {
         case 'h':
             printf("\n"UNDERLI"\tDiscrete Event Traffic Simulation - STEL 2018/2019 @ FEUP"END_UND);
             printf("\n\nUsage: %s\t{-a ArrivalRate} {-d AverageDuration} {-s NrOfSamples}\n"
-                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v]\n"
-                   "\n\t-v\tMakes the program verbose\n\n", argv[0]);
+                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v] [-c]\n"
+                   "\n\t-v\tMakes the program verbose\n"
+		   "\t-c\tSeed the PRNG with the current system time\n\n", argv[0]);
             return -1;
         case 'a':
             args_obrigatorios--;
@@ -93,6 +101,9 @@ int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
         case 'v':
             is_verbose = 1;
             break;
+	    case 'c':
+	        is_random = 1;
+	        break;
         case '?':
             if (optopt == 'a' || optopt == 'd' || optopt == 's' || optopt == 'r' || optopt == 'w')
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
@@ -108,6 +119,7 @@ int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
         printf("Not all values were specified. Use -h for help. Quitting...\n");
         return -1;
     }
+
     return 0;
 }
 
@@ -116,6 +128,7 @@ double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_esper
     double u_c = ((double)rand())/RAND_MAX;
     double c = -(1.0/lambda)*log(u_c);		// Intervalo para proxima chegada
     double tempo_recurso_libertado = 0;
+
     
     double partida_a_libertar = (*lista_partidas == NULL)?(ultima_chegada+c+1):((*lista_partidas)->tempo);
     if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
@@ -187,6 +200,8 @@ double gerarEvento2(struct simulacao *simulacao_atual, double ultima_chegada, do
     double u_c = ((double)rand())/RAND_MAX;
     double c = -(1.0/ (*simulacao_atual).taxa_chegada )*log(u_c);		// Intervalo para proxima chegada
     double tempo_recurso_libertado = 0;
+
+    (*simulacao_atual).nr_processadas++;
     
     double partida_a_libertar = ( (*simulacao_atual).lista_recursos == NULL)?(ultima_chegada+c+1):( ((lista*)(*simulacao_atual).lista_recursos)->tempo);
     if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
@@ -276,4 +291,46 @@ double F_c(double lambda, double t) {
 
 double f_c(double lambda, double t) {
     return lambda*exp(-lambda*t);
+}
+
+void *print_prog( void * data_ptr){
+
+    struct simulacao * simulacao_atual = (struct simulacao*)data_ptr;
+
+    static struct timeval t1, t2;
+    static double elapsedTime;
+
+    while(1){
+    
+        double percentage = 100.0 * (*simulacao_atual).nr_processadas / (*simulacao_atual).nr_amostras;
+
+
+        int pos;
+
+        if(percentage <= 1){
+            gettimeofday(&t1, NULL);
+        }
+        printf("\r %5.1f%%[", percentage);
+
+        pos = percentage * 30 / 100.0;
+
+        for (int i = 0; i < 30; i++){
+            if( i <= pos)printf("=");
+            else printf(".");
+        }printf("]");
+        
+        fflush(stdout);
+        if((*simulacao_atual).nr_processadas == (*simulacao_atual).nr_amostras)break;
+        sched_yield();
+    
+    }
+
+    gettimeofday(&t2, NULL);
+    elapsedTime = (double)(t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+    elapsedTime += (double)(t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+    printf(" in %.3lf s \n\n",elapsedTime/1000.0);
+
+    return NULL;
+
+   
 }
