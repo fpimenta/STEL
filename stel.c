@@ -107,25 +107,16 @@ int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
 int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual){
     extern char *optarg;
     extern int optind, opterr, optopt;
-    int args_obrigatorios = 5, c;
+    int args_obrigatorios = 3, c;
 
-    while ((c = getopt (argc, argv, "a:d:s:r:w:vch")) != -1)
+    while ((c = getopt (argc, argv, "s:r:w:vch")) != -1)
     switch (c) {
         case 'h':
             printf("\n"UNDERLI"\tDiscrete Event Traffic Simulation - STEL 2018/2019 @ FEUP"END_UND);
-            printf("\n\nUsage: %s\t{-a ArrivalRate} {-d AverageDuration} {-s NrOfSamples}\n"
-                   "\t\t{-r NrOfResources} {-w WaitingListLength} [-v] [-c]\n"
+            printf("\n\nUsage: %s\t {-s NrOfSamples} {-r NrOfResources} {-w WaitingListLength} [-v] [-c]\n"
                    "\n\t-v\tMakes the program verbose\n"
 		   "\t-c\tSeed the PRNG with the current system time\n\n", argv[0]);
             return -1;
-        case 'a':
-            args_obrigatorios--;
-            (*simulacao_atual).taxa_chegada = atof(optarg);
-            break;
-        case 'd':
-            args_obrigatorios--;
-            (*simulacao_atual).duracao_media = atof(optarg);
-            break;
         case 's':
             args_obrigatorios--;
             (*simulacao_atual).nr_amostras = atoi(optarg);
@@ -145,7 +136,7 @@ int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual){
 	        is_random = 1;
 	        break;
         case '?':
-            if (optopt == 'a' || optopt == 'd' || optopt == 's' || optopt == 'r' || optopt == 'w')
+            if ( optopt == 's' || optopt == 'r' || optopt == 'w')
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
             else if (isprint (optopt))
                 fprintf (stderr, "Unknown option `-%c'. Use -h for help.\n", optopt);
@@ -228,11 +219,12 @@ double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_esper
         *lista_ev = adicionar(*lista_ev, PARTIDA, ultima_chegada+c+d);
         *lista_partidas = adicionar(*lista_partidas, PARTIDA, ultima_chegada+c+d);
     }
-    return ultima_chegada+c;
-    // HISTOGRAMA
-    // if (c >= (N_HIST-1)*delta) histograma[N_HIST-1]++;
+     // if (c >= (N_HIST-1)*delta) histograma[N_HIST-1]++;
     // else histograma[(int)(c/delta)]++;
     // FIM DE HISTOGRAMA
+    return ultima_chegada+c;
+    // HISTOGRAMA
+   
 }
 
 
@@ -364,6 +356,9 @@ double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, do
             (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA_ESPECIALIZADA, tempo_atual+d);
         }
     }
+    if ((*delay) >= (N_HIST-1)*(0.001))  (*simulacao_atual).hist_delay[N_HIST-1]++;
+    else  (*simulacao_atual).hist_delay[(int)((*delay)/0.001)]++;
+  
     return tempo_atual;
 }
 
@@ -436,5 +431,5 @@ void *print_prog( void * data_ptr){
     elapsedTime += (double)(t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
     printf(" in %.3lf s \n\n",elapsedTime/1000.0);
 
-    return NULL;
+    pthread_exit(NULL);
 }

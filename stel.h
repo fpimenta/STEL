@@ -36,6 +36,8 @@
 #define UNDERLI "\033[4m"
 #define END_UND "\033[0m"
 
+#define N_HIST 1000
+
 extern int is_verbose;
 extern int is_random;
 
@@ -49,6 +51,7 @@ struct simulacao {
     int nr_processadas;
     int nr_recursos;
     int tamanho_espera;
+    int hist_delay[N_HIST];
     int recursos_ocupados;
     int lista_espera_ocupada;
     int nr_bloqueadas;
