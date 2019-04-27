@@ -6,6 +6,7 @@
 typedef struct lista{
 	int tipo;
 	double tempo;
+	double espera_estimada; // algo assim?
 	struct lista * proximo;
 } lista;
 

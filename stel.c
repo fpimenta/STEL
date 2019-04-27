@@ -1,7 +1,6 @@
 #include "stel.h"
 #include "list.h"
 
-
 int is_verbose = 0;
 int is_random = 0;
 
@@ -135,7 +134,7 @@ int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual){
 	        is_random = 1;
 	        break;
         case '?':
-            if ( optopt == 's' || optopt == 'r' || optopt == 'w')
+            if (optopt == 's' || optopt == 'r' || optopt == 'w')
                 fprintf (stderr, "Option -%c requires an argument.\n", optopt);
             else if (isprint (optopt))
                 fprintf (stderr, "Unknown option `-%c'. Use -h for help.\n", optopt);
@@ -173,18 +172,16 @@ double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, do
 
         if ((*simulacao_atual).lista_espera_ocupada){
             // Existindo evento na lista de espera, processar esse
-            (*delay) += tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
             double tempo_inicial = ((lista*)(*simulacao_atual).lista_espera)->tempo;
+            double this_delay = tempo_recurso_libertado - tempo_inicial;
+            (*delay) += this_delay;
             int tipo_chamada = ((lista*)(*simulacao_atual).lista_espera)->tipo;
-            double this_delay = tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
             (*simulacao_atual).lista_espera = remover((*simulacao_atual).lista_espera);
             
-
-            //printf("delay: %f, position: %d\n", this_delay, (int)((this_delay)/0.01));
-            if ((this_delay) >= (N_HIST-1)*(0.01)) (*simulacao_atual).hist_delay[N_HIST-1]++;
-            else (*simulacao_atual).hist_delay[(int)((this_delay)/0.01)]++;
+            if ((this_delay) >= (N_HIST-1)*(D_HIST)) (*simulacao_atual).hist_delay[N_HIST-1]++;
+            else (*simulacao_atual).hist_delay[(int)((this_delay)/D_HIST)]++;
             // UMA CHAMADA EM LISTA DE ESPERA FOI ATENDIDA, TEMPO QUE ESPEROU: tempo_recurso_libertado - tempo_inicial
-            
+            // USAR ISTO PARA CALCULAR NOVO ESTIMATED_DELAY
             // DURACAO DEPENDENTE DO TIPO DE CHAMADA (GP OU SP)
             if (tipo_chamada == CHEGADA_GERAL){
                 double d = EXPONENT_FIX + exponential(EXPONENT_AVG,EXPONENT_MIN,EXPONENT_MAX);
@@ -206,11 +203,9 @@ double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, do
         // Adicionar a lista de espera, ou bloquear
         (*simulacao_atual).nr_atrasadas++;
         if ((*simulacao_atual).lista_espera_ocupada < (*simulacao_atual).tamanho_espera){
-            // CHAMADA VAI SER ATRASADA, MAS NAO BLOQUEADA
             (*simulacao_atual).lista_espera_ocupada++;
             (*simulacao_atual).lista_espera = adicionar((*simulacao_atual).lista_espera, CHEGADA, tempo_atual);
         } else {
-            // CHAMADA BLOQUEADA
             (*simulacao_atual).nr_bloqueadas++;
         }
     } else {
@@ -239,7 +234,7 @@ int print_hist(char * csv_file){
 void print_csv(int * hist, int hist_size ,char * csv_file){
     FILE *file_out;
 	file_out = fopen(csv_file, "w+");
-	for (int j = 0; j < hist_size-1; j++)
+	for (int j = 0; j < hist_size; j++)
 		fprintf(file_out, "%d,%d\n", j, hist[j]);
 	fclose(file_out);
 }

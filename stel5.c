@@ -41,18 +41,6 @@ Estatística necessária:
 - Histograma da previsão do tempo de espera e a média absoluta
  e relativa da previsão do tempo de espera
 
-
-
-Procedimento anterior:
-Ao gerar uma chamada, calcular a hora a que esta chegou (tempo atual).
-Se, antes desta chegar, existirem chamadas que já terminaram, libertar
-esses recursos primeiro.
-De seguida, se existem chamadas em lista de espera, essas são atendidas primeiro:
-    - gera-se a duração desta chamada e consequentemente o seu fim
-De seguida, se existirem recursos livres, esta chamada é atendida
-    - gera-se a duração, etc.
-Não existindo recursos livres, vai para a lista de espera.
-Só ao retirar da lista de espera (atender) se determina a duração
 */
 
 int main(int argc, char** argv){
@@ -61,17 +49,13 @@ int main(int argc, char** argv){
     
     // Definir parametros do sistema
     simulacao_atual = (struct simulacao) {
-        .lista_eventos = NULL, .lista_espera = NULL, .lista_recursos = NULL,
-        .nr_amostras = 10000,.nr_processadas = 0, .tamanho_espera = 10, .recursos_ocupados = 0,
-        .lista_espera_ocupada = 0, .nr_bloqueadas = 0, .nr_atrasadas = 0, .taxa_chegada = 80.0/3600, .duracao_media= 2,
-        .nr_recursos = 5
+        .lista_espera = NULL, .lista_recursos = NULL, .nr_amostras = 10000, .nr_processadas = 0,
+        .tamanho_espera = 10, .recursos_ocupados = 0, .lista_espera_ocupada = 0, .nr_bloqueadas = 0,
+        .nr_atrasadas = 0, .taxa_chegada = 80.0/60, .duracao_media= 2, .nr_recursos = 5
     };
 
     double ultima_chegada = 0, delay = 0;
 
-    // não vai ser necessário mas ha que configurar: 
-    // taxa_chegada duracao_media nr_amostras nr_recursos
-    // tamanho_espera (is_verbos e is_random também)
     is_random = 0;
     is_verbose = 0;
     
@@ -91,11 +75,6 @@ int main(int argc, char** argv){
 
     pthread_join(printProg_thr, NULL);
     
-
-    //printf("\nLISTA ACTUAL\n");
-    //imprimir(lista_eventos);
-    //printf("Lista partidas\n");
-    //imprimir(lista_partidas);
     //printf("Intervalo medio entre chegada de eventos: %lf\n", ultima_chegada/N_HIST);
     printf("Numero de bloqueadas: %d\n", simulacao_atual.nr_bloqueadas);
     printf("Probabilidade de bloqueio: %f\n", ((double)simulacao_atual.nr_bloqueadas/simulacao_atual.nr_amostras)*100.0);
@@ -103,7 +82,6 @@ int main(int argc, char** argv){
     printf("Probabilidade de atraso: %f\n", ((double)simulacao_atual.nr_atrasadas/simulacao_atual.nr_amostras)*100.0);
     printf("Atraso medio: %f\n\n", ((double)delay/simulacao_atual.nr_amostras));// o delay esta em que unidade?
 
-    
 	printf("Escrever ficheiro CSV? [y/N]  ");
 	char ans = getchar();
 	if (ans == 'y' || ans == 'Y'){
@@ -115,6 +93,5 @@ int main(int argc, char** argv){
 			print_hist("./output.csv");
 	}
     
-
     return 0;
 }

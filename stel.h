@@ -35,7 +35,8 @@
 #define UNDERLI "\033[4m"
 #define END_UND "\033[0m"
 
-#define N_HIST 100
+#define N_HIST 50
+#define D_HIST 1
 
 extern int is_verbose;
 extern int is_random;
