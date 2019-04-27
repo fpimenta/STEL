@@ -5,7 +5,6 @@
 int is_verbose = 0;
 int is_random = 0;
 
-// Coin toss
 static int typeOfCall() {
     return (((double)rand())/RAND_MAX) < PROB_ESPECIALIZADA ? CHEGADA_ESPECIALIZADA : CHEGADA_GERAL;
 }
@@ -154,141 +153,6 @@ int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual){
     return 0;
 }
 
-double gerarEvento(lista **lista_ev, lista **lista_partidas, lista **lista_espera, double lambda, double dm, double ultima_chegada, 
-                   int *recursos_ocupados, int *bloqueadas, int n_recursos, int tamanho_espera, int *espera_ocupada, int *nr_atrasadas, double *delay){
-    double u_c = ((double)rand())/RAND_MAX;
-    double c = -(1.0/lambda)*log(u_c);		// Intervalo para proxima chegada
-    double tempo_recurso_libertado = 0;
-
-    
-    double partida_a_libertar = (*lista_partidas == NULL)?(ultima_chegada+c+1):((*lista_partidas)->tempo);
-    if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
-
-    while (partida_a_libertar < (ultima_chegada+c)){
-        (*recursos_ocupados)--;
-        tempo_recurso_libertado = (*lista_partidas)->tempo;
-        *lista_partidas = remover(*lista_partidas);
-
-        if (*espera_ocupada){
-            (*delay) += tempo_recurso_libertado - (*lista_espera)->tempo;
-            *lista_espera = remover(*lista_espera);
-            *lista_ev = adicionar(*lista_ev, CHEGADA, tempo_recurso_libertado);
-            
-            double u_d = ((double)rand())/RAND_MAX;
-            double d = -dm*log(u_d);      // Duracao da chamada
-            *lista_ev = adicionar(*lista_ev, PARTIDA, tempo_recurso_libertado+d);
-            *lista_partidas = adicionar(*lista_partidas, PARTIDA, tempo_recurso_libertado+d);
-
-            (*espera_ocupada)--;
-            (*recursos_ocupados)++;
-        }
-
-        if (*lista_partidas == NULL)
-            break;
-        partida_a_libertar = (*lista_partidas)->tempo;
-    }
-
-
-    /*
-    // LIMPAR LISTA DE ESPERA, SE POSSIVEL (?)
-    while ((*espera_ocupada) && (*recursos_ocupados < n_recursos)){
-        // delay = ultima_chegada+c-((*lista_espera)->tempo);
-        *lista_ev = adicionar(*lista_ev, CHEGADA, ultima_chegada+c);
-        (*espera_ocupada)--;
-        (*recursos_ocupados)++;
-    }
-    */
-
-    if (*recursos_ocupados >= n_recursos){
-        // Adicionar a lista de espera, ou bloquear
-        (*nr_atrasadas)++;
-        if ((*espera_ocupada) < tamanho_espera){
-            (*espera_ocupada)++;
-            *lista_espera = adicionar(*lista_espera, CHEGADA, ultima_chegada+c);
-        } else {
-            (*bloqueadas)++;
-        }
-        //*lista_ev = adicionar(*lista_ev, BLOQUEA, ultima_chegada+c);
-    } else {
-        // Adicionar chegada, ocupar recurso, gerar partida
-        (*recursos_ocupados)++;
-        *lista_ev = adicionar(*lista_ev, CHEGADA, ultima_chegada+c);
-
-        double u_d = ((double)rand())/RAND_MAX;
-        double d = -dm*log(u_d);      // Duracao da chamada
-        *lista_ev = adicionar(*lista_ev, PARTIDA, ultima_chegada+c+d);
-        *lista_partidas = adicionar(*lista_partidas, PARTIDA, ultima_chegada+c+d);
-    }
-     // if (c >= (N_HIST-1)*delta) histograma[N_HIST-1]++;
-    // else histograma[(int)(c/delta)]++;
-    // FIM DE HISTOGRAMA
-    return ultima_chegada+c;
-    // HISTOGRAMA
-   
-}
-
-
-double gerarEvento2(struct simulacao *simulacao_atual, double ultima_chegada, double *delay){
-    double u_c = ((double)rand())/RAND_MAX;
-    double c = -(1.0/ (*simulacao_atual).taxa_chegada )*log(u_c);		// Intervalo para proxima chegada
-    double tempo_recurso_libertado = 0;
-
-    (*simulacao_atual).nr_processadas++;
-    
-    double partida_a_libertar = ( (*simulacao_atual).lista_recursos == NULL)?(ultima_chegada+c+1):( ((lista*)(*simulacao_atual).lista_recursos)->tempo);
-    if(is_verbose)printf("Partida a libertar: %lf\tUltima chegada: %lf\n", partida_a_libertar, ultima_chegada+c);
-
-    while (partida_a_libertar < (ultima_chegada+c)){
-        (*simulacao_atual).recursos_ocupados--;
-        tempo_recurso_libertado = ((lista*)(*simulacao_atual).lista_recursos)->tempo;
-        (*simulacao_atual).lista_recursos = remover((*simulacao_atual).lista_recursos);
-
-        if ((*simulacao_atual).lista_espera_ocupada){
-            (*delay) += tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
-            (*simulacao_atual).lista_espera = remover((*simulacao_atual).lista_espera);
-            (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, CHEGADA, tempo_recurso_libertado);
-            
-            double u_d = ((double)rand())/RAND_MAX;
-            double d = -(*simulacao_atual).duracao_media*log(u_d);      // Duracao da chamada
-            (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, PARTIDA, tempo_recurso_libertado+d);
-            (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA, tempo_recurso_libertado+d);
-
-            (*simulacao_atual).lista_espera_ocupada--;
-            (*simulacao_atual).recursos_ocupados++;
-        }
-
-        if ((*simulacao_atual).lista_recursos == NULL)
-            break;
-        partida_a_libertar = ((lista*)(*simulacao_atual).lista_recursos)->tempo;
-    }
-
-    if ((*simulacao_atual).recursos_ocupados >= (*simulacao_atual).nr_recursos){
-        // Adicionar a lista de espera, ou bloquear
-        (*simulacao_atual).nr_atrasadas++;
-        if ((*simulacao_atual).lista_espera_ocupada < (*simulacao_atual).tamanho_espera){
-            (*simulacao_atual).lista_espera_ocupada++;
-            (*simulacao_atual).lista_espera = adicionar((*simulacao_atual).lista_espera, CHEGADA, ultima_chegada+c);
-        } else {
-            (*simulacao_atual).nr_bloqueadas++;
-        }
-        //(*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, BLOQUEA, ultima_chegada+c);
-    } else {
-        // Adicionar chegada, ocupar recurso, gerar partida
-        (*simulacao_atual).recursos_ocupados++;
-        (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, CHEGADA, ultima_chegada+c);
-
-        double u_d = ((double)rand())/RAND_MAX;
-        double d = -(*simulacao_atual).duracao_media*log(u_d);      // Duracao da chamada
-        (*simulacao_atual).lista_eventos = adicionar((*simulacao_atual).lista_eventos, PARTIDA, ultima_chegada+c+d);
-        (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA, ultima_chegada+c+d);
-    }
-    return ultima_chegada+c;
-    // HISTOGRAMA
-    // if (c >= (N_HIST-1)*delta) histograma[N_HIST-1]++;
-    // else histograma[(int)(c/delta)]++;
-    // FIM DE HISTOGRAMA
-}
-
 
 // Funcao que gera chamada, determinando se esta sera atendida por General Purpose
 // ou Specific Purpose. Com base nisso, define o tipo de chamada, e a sua duracao.
@@ -312,7 +176,13 @@ double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, do
             (*delay) += tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
             double tempo_inicial = ((lista*)(*simulacao_atual).lista_espera)->tempo;
             int tipo_chamada = ((lista*)(*simulacao_atual).lista_espera)->tipo;
+            double this_delay = tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
             (*simulacao_atual).lista_espera = remover((*simulacao_atual).lista_espera);
+            
+
+            //printf("delay: %f, position: %d\n", this_delay, (int)((this_delay)/0.01));
+            if ((this_delay) >= (N_HIST-1)*(0.01)) (*simulacao_atual).hist_delay[N_HIST-1]++;
+            else (*simulacao_atual).hist_delay[(int)((this_delay)/0.01)]++;
             // UMA CHAMADA EM LISTA DE ESPERA FOI ATENDIDA, TEMPO QUE ESPEROU: tempo_recurso_libertado - tempo_inicial
             
             // DURACAO DEPENDENTE DO TIPO DE CHAMADA (GP OU SP)
@@ -356,13 +226,9 @@ double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, do
             (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA_ESPECIALIZADA, tempo_atual+d);
         }
     }
-    if ((*delay) >= (N_HIST-1)*(0.001))  (*simulacao_atual).hist_delay[N_HIST-1]++;
-    else  (*simulacao_atual).hist_delay[(int)((*delay)/0.001)]++;
   
     return tempo_atual;
 }
-
-
 
 
 int print_hist(char * csv_file){
@@ -383,18 +249,6 @@ unsigned int factorial(unsigned int n){
     for (int i = n; i > 1; i--)
  		ret_val *= i;
  	return ret_val;
-}
-
-double P_T(double lambda, unsigned int K, int T){
-    return pow(lambda*T, K)*exp(-lambda*T)/factorial(K);
-}
-
-double F_c(double lambda, double t) {
-    return 1 - exp(-lambda*t);
-}
-
-double f_c(double lambda, double t) {
-    return lambda*exp(-lambda*t);
 }
 
 void *print_prog( void * data_ptr){

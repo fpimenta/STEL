@@ -86,7 +86,7 @@ int main(int argc, char** argv){
     pthread_create(&printProg_thr, NULL, print_prog, &simulacao_atual);
     
     for (int i = 0; i < simulacao_atual.nr_amostras; i++){
-        ultima_chegada = gerarEvento2(&simulacao_atual, ultima_chegada, &delay);
+        ultima_chegada = gerarChamada(&simulacao_atual, ultima_chegada, &delay);
     }
 
     pthread_join(printProg_thr, NULL);
