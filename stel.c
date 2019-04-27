@@ -5,7 +5,47 @@
 int is_verbose = 0;
 int is_random = 0;
 
-int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_nr, int *resource_nr, int *waiting_length){
+// Coin toss
+static int typeOfCall() {
+    return (((double)rand())/RAND_MAX) < PROB_ESPECIALIZADA ? CHEGADA_ESPECIALIZADA : CHEGADA_GERAL;
+}
+
+static double exponential(double media, double min, double max){
+    double u_d = ((double)rand())/RAND_MAX;
+    double d = (-(media)*log(u_d)); 
+ 
+    return (d < max)? (d > min)? d : min : max;
+}
+
+// Gaussian distribution with low and high limits
+// TOCAR PELO METODO 3 - Mais tarde
+static double gaussian(void){
+   static double v, fac;
+   static int phase = 0;
+   double S, Z, U1, U2, u;
+
+    if (phase)
+        Z = v * fac;
+    else{
+      do{
+         U1 = (double)rand() / RAND_MAX;
+         U2 = (double)rand() / RAND_MAX;
+
+         u = 2. * U1 - 1.;
+         v = 2. * U2 - 1.;
+         S = u * u + v * v;
+      } while (S >= 1);
+
+      fac = sqrt (-2. * log(S) / S);
+      Z = u * fac;
+   }
+
+   phase = 1 - phase;
+
+   return ((GAUSSIAN_MEAN + GAUSSIAN_STD_DEV *Z) < GAUSSIAN_MAX)? ((GAUSSIAN_MEAN + GAUSSIAN_STD_DEV *Z) > GAUSSIAN_MIN)? (GAUSSIAN_MEAN + GAUSSIAN_STD_DEV *Z): GAUSSIAN_MIN : GAUSSIAN_MAX;
+}
+
+int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
     extern char *optarg;
     extern int optind, opterr, optopt;
     int args_obrigatorios = 5, c;
@@ -16,28 +56,28 @@ int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_n
             printf("\n"UNDERLI"\tDiscrete Event Traffic Simulation - STEL 2018/2019 @ FEUP"END_UND);
             printf("\n\nUsage: %s\t{-a ArrivalRate} {-d AverageDuration} {-s NrOfSamples}\n"
                    "\t\t{-r NrOfResources} {-w WaitingListLength} [-v] [-c]\n"
-                   "\n\t-v\tMakes the program verbose\n\n"
-		   "\n\t-c\tSeed the PRNG with the current system time\n\n", argv[0]);
+                   "\n\t-v\tMakes the program verbose\n"
+		   "\t-c\tSeed the PRNG with the current system time\n\n", argv[0]);
             return -1;
         case 'a':
             args_obrigatorios--;
-            *lambda = atof(optarg);
+            (*simulacao_atual).taxa_chegada = atof(optarg);
             break;
         case 'd':
             args_obrigatorios--;
-            *dm = atof(optarg);
+            (*simulacao_atual).duracao_media = atof(optarg);
             break;
         case 's':
             args_obrigatorios--;
-            *sample_nr = atoi(optarg);
+            (*simulacao_atual).nr_amostras = atoi(optarg);
             break;
         case 'r':
             args_obrigatorios--;
-            *resource_nr = atoi(optarg);
+            (*simulacao_atual).nr_recursos = atoi(optarg);
             break;
         case 'w':
             args_obrigatorios--;
-            *waiting_length = atoi(optarg);
+            (*simulacao_atual).tamanho_espera = atoi(optarg);
             break;
         case 'v':
             is_verbose = 1;
@@ -64,7 +104,7 @@ int parse_input(int argc, char** argv, double *lambda, double *dm, int *sample_n
     return 0;
 }
 
-int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual){
+int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual){
     extern char *optarg;
     extern int optind, opterr, optopt;
     int args_obrigatorios = 5, c;
@@ -258,6 +298,75 @@ double gerarEvento2(struct simulacao *simulacao_atual, double ultima_chegada, do
 }
 
 
+// Funcao que gera chamada, determinando se esta sera atendida por General Purpose
+// ou Specific Purpose. Com base nisso, define o tipo de chamada, e a sua duracao.
+double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, double *delay){
+    double u_c = ((double)rand())/RAND_MAX;
+    double c = -(1.0/ (*simulacao_atual).taxa_chegada )*log(u_c);		// Intervalo para proxima chegada
+    double tempo_recurso_libertado = 0;
+    double tempo_atual = ultima_chegada+c;
+
+    (*simulacao_atual).nr_processadas++;
+    
+    double partida_a_libertar = ( (*simulacao_atual).lista_recursos == NULL)?(tempo_atual+1):( ((lista*)(*simulacao_atual).lista_recursos)->tempo);
+    while (partida_a_libertar < tempo_atual){
+        // Existe uma partida nao processada - libertar recurso
+        (*simulacao_atual).recursos_ocupados--;
+        tempo_recurso_libertado = ((lista*)(*simulacao_atual).lista_recursos)->tempo;
+        (*simulacao_atual).lista_recursos = remover((*simulacao_atual).lista_recursos);
+
+        if ((*simulacao_atual).lista_espera_ocupada){
+            // Existindo evento na lista de espera, processar esse
+            (*delay) += tempo_recurso_libertado - ((lista*)(*simulacao_atual).lista_espera)->tempo;
+            double tempo_inicial = ((lista*)(*simulacao_atual).lista_espera)->tempo;
+            int tipo_chamada = ((lista*)(*simulacao_atual).lista_espera)->tipo;
+            (*simulacao_atual).lista_espera = remover((*simulacao_atual).lista_espera);
+            // UMA CHAMADA EM LISTA DE ESPERA FOI ATENDIDA, TEMPO QUE ESPEROU: tempo_recurso_libertado - tempo_inicial
+            
+            // DURACAO DEPENDENTE DO TIPO DE CHAMADA (GP OU SP)
+            if (tipo_chamada == CHEGADA_GERAL){
+                double d = EXPONENT_FIX + exponential(EXPONENT_AVG,EXPONENT_MIN,EXPONENT_MAX);
+                (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA_GERAL, tempo_recurso_libertado+d);
+            } else {
+                double d = gaussian();
+                (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA_ESPECIALIZADA, tempo_recurso_libertado+d);
+            }
+            (*simulacao_atual).lista_espera_ocupada--;
+            (*simulacao_atual).recursos_ocupados++;
+        }
+
+        if ((*simulacao_atual).lista_recursos == NULL)
+            break;
+        partida_a_libertar = ((lista*)(*simulacao_atual).lista_recursos)->tempo;
+    }
+
+    if ((*simulacao_atual).recursos_ocupados >= (*simulacao_atual).nr_recursos){
+        // Adicionar a lista de espera, ou bloquear
+        (*simulacao_atual).nr_atrasadas++;
+        if ((*simulacao_atual).lista_espera_ocupada < (*simulacao_atual).tamanho_espera){
+            // CHAMADA VAI SER ATRASADA, MAS NAO BLOQUEADA
+            (*simulacao_atual).lista_espera_ocupada++;
+            (*simulacao_atual).lista_espera = adicionar((*simulacao_atual).lista_espera, CHEGADA, tempo_atual);
+        } else {
+            // CHAMADA BLOQUEADA
+            (*simulacao_atual).nr_bloqueadas++;
+        }
+    } else {
+        // Adicionar chegada, ocupar recurso, gerar partida
+        (*simulacao_atual).recursos_ocupados++;
+
+        // PARTIDA DEPENDE DO TIPO DE CHAMADA, SP OU GP
+        if (typeOfCall() == CHEGADA_GERAL){
+            double d = EXPONENT_FIX + exponential(EXPONENT_AVG,EXPONENT_MIN,EXPONENT_MAX);
+            (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA_GERAL, tempo_atual+d);
+        } else {
+            double d = gaussian();
+            (*simulacao_atual).lista_recursos = adicionar((*simulacao_atual).lista_recursos, PARTIDA_ESPECIALIZADA, tempo_atual+d);
+        }
+    }
+    return tempo_atual;
+}
+
 
 
 
@@ -303,8 +412,6 @@ void *print_prog( void * data_ptr){
     while(1){
     
         double percentage = 100.0 * (*simulacao_atual).nr_processadas / (*simulacao_atual).nr_amostras;
-
-
         int pos;
 
         if(percentage <= 1){
@@ -321,8 +428,7 @@ void *print_prog( void * data_ptr){
         
         fflush(stdout);
         if((*simulacao_atual).nr_processadas == (*simulacao_atual).nr_amostras)break;
-        sched_yield();
-    
+        sched_yield();    
     }
 
     gettimeofday(&t2, NULL);
@@ -331,6 +437,4 @@ void *print_prog( void * data_ptr){
     printf(" in %.3lf s \n\n",elapsedTime/1000.0);
 
     return NULL;
-
-   
 }
