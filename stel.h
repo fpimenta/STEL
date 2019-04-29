@@ -25,9 +25,8 @@
 #define GAUSSIAN_MIN 0.5 // 30 seconds
 
 #define EXPONENT_AVG 2
-#define EXPONENT_MIN 0
+#define EXPONENT_MIN 1
 #define EXPONENT_MAX 5
-#define EXPONENT_FIX 1
 
 #define CHEGADA 0
 #define PARTIDA 1
@@ -35,11 +34,16 @@
 #define UNDERLI "\033[4m"
 #define END_UND "\033[0m"
 
-#define N_HIST 50
-#define D_HIST 1
+#define N_HIST 100
+#define D_HIST 0.1
+
+#define MEAN_WINDOW 40
 
 extern int is_verbose;
 extern int is_random;
+
+extern int espec; 
+extern int ger;
 
 struct simulacao {
 	struct lista * lista_eventos;
@@ -51,20 +55,28 @@ struct simulacao {
     int nr_processadas;
     int nr_recursos;
     int tamanho_espera;
-    int hist_delay[N_HIST];
     int recursos_ocupados;
     int lista_espera_ocupada;
     int nr_bloqueadas;
     int nr_atrasadas;
+    double duracao_media_real;
+    double min_delay;
+    double max_delay;
+    double pior_previsao;
+    double call_duration[MEAN_WINDOW];
 };
 
 int print_hist(char * csv_file);
 void *print_prog( void * data_ptr);
-void print_csv(int * hist, int hist_size ,char * csv_file);
+void print_csv(int * hist, int hist_size ,char * csv_file, double inicio);
 int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual);
 int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual);
 double gerarEvento2(struct simulacao *simulacao_atual, double ultima_chegada, double *delay);
-double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, double *delay);
+double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, double *delay, double* hist_delay, double *hist_previsao);
 unsigned int factorial(unsigned int n);
+//double windowAverage(double *callDuration, double lastDelay,int windowSize);
+double average(double valorAtual);
+//double average(double *callDuration, int windowSize);
+void print_csv2(double * hist, int hist_size ,char * csv_file);
 
 #endif

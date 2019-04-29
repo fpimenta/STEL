@@ -6,7 +6,7 @@ lista * remover (lista * apontador){
 	return lap;
 }
 
-lista * adicionar (lista * apontador, int n_tipo, double n_tempo){
+lista * adicionar (lista * apontador, int n_tipo, double n_tempo, double espera_estimada){
 	lista * lap = apontador;
 	lista * ap_aux, * ap_next;
 	if(apontador == NULL){
@@ -14,6 +14,7 @@ lista * adicionar (lista * apontador, int n_tipo, double n_tempo){
 		apontador -> proximo = NULL;
 		apontador -> tipo = n_tipo;
 		apontador -> tempo = n_tempo;
+		apontador -> espera_estimada = espera_estimada;
 		return apontador;
 	}
 	else{
@@ -21,6 +22,7 @@ lista * adicionar (lista * apontador, int n_tipo, double n_tempo){
 	        ap_aux = (lista *) malloc(sizeof (lista));
 	        ap_aux -> tipo = n_tipo;
             ap_aux -> tempo = n_tempo;
+            ap_aux -> espera_estimada = espera_estimada;
             ap_aux -> proximo = (struct lista *) apontador;
             return ap_aux;
 	    }
@@ -41,6 +43,7 @@ lista * adicionar (lista * apontador, int n_tipo, double n_tempo){
 			apontador -> proximo = NULL;
 		apontador -> tipo = n_tipo;
 		apontador -> tempo = n_tempo;
+		apontador -> espera_estimada = espera_estimada;
 		return lap;
 	}
 }
