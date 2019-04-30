@@ -5,6 +5,7 @@
 #include "list.h"
 #include "stel.h"
 
+
 /*
 Procedimento:
 Ao gerar chamada:
@@ -45,6 +46,7 @@ Estatística necessária:
 
 int main(int argc, char** argv){
     struct simulacao simulacao_atual;
+    struct simulacao simulacao_especial;
     pthread_t printProg_thr;
     
     // Definir parametros do sistema
@@ -55,6 +57,13 @@ int main(int argc, char** argv){
         .min_delay = 0, .max_delay = 0, .pior_previsao = 0
     };
 
+    simulacao_especial = (struct simulacao) {
+        .lista_espera = NULL, .lista_recursos = NULL, .nr_amostras = -1, .nr_processadas = 0,
+        .tamanho_espera = -1, .recursos_ocupados = 0, .lista_espera_ocupada = 0, .nr_bloqueadas = 0,
+        .nr_atrasadas = 0, .taxa_chegada = 0, .duracao_media= 2.5, .nr_recursos = 5,
+        .min_delay = 0, .max_delay = 0, .pior_previsao = 0,.pior_previsao2 = 0
+    };
+
     double ultima_chegada = 0, delay = 0;
     
     int hist_delay2[N_HIST];for(int i = 0;i < N_HIST;i++)hist_delay2[i]= 0;
@@ -63,7 +72,7 @@ int main(int argc, char** argv){
     is_random = 0;
     is_verbose = 0;
     
-    if(parse_input3(argc, argv, &simulacao_atual)){
+    if(parse_input3(argc, argv, &simulacao_atual,&simulacao_especial)){
         return -1;
     }
 
@@ -79,7 +88,7 @@ int main(int argc, char** argv){
     //pthread_create(&printProg_thr, NULL, print_prog, &simulacao_atual);
     
     for (int i = 0; i < simulacao_atual.nr_amostras; i++){
-        ultima_chegada = gerarChamada(&simulacao_atual, ultima_chegada, &delay, hist_delay, hist_previsao);
+        ultima_chegada = gerarChamada(&simulacao_atual, ultima_chegada, &delay, hist_delay, hist_previsao, &simulacao_especial);
     }
 
     //pthread_join(printProg_thr, NULL);
@@ -96,6 +105,7 @@ int main(int argc, char** argv){
     //imprimir(simulacao_atual.lista_espera);
 
     printf("Espec: %d Geral: %d\n", espec, ger);
+    printf("Delay Medio Alinea B: %f\n", average2(-1));
 
 	printf("Escrever ficheiro CSV? [y/N]  ");
 	char ans = getchar();
@@ -123,7 +133,7 @@ int main(int argc, char** argv){
             if ((hist_previsao[i])-simulacao_atual.pior_previsao >= (N_HIST-1)*(d_hist)) hist_delay3[N_HIST-1]++;
             else hist_delay3[(int)((hist_previsao[i]-simulacao_atual.pior_previsao)/(double)d_hist)]++;
         }
-         printf("pior_previsao: %f\n",simulacao_atual.pior_previsao );
+        printf("Pior previsao: %f e %f\n",simulacao_atual.pior_previsao, simulacao_atual.pior_previsao2 );
         print_csv(hist_delay3,N_HIST,"./output2.csv", simulacao_atual.pior_previsao);
         print_hist("./output2.csv");       
 	}

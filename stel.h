@@ -28,6 +28,9 @@
 #define EXPONENT_MIN 1
 #define EXPONENT_MAX 5
 
+#define EXPONENT_AVG_SPEC 2.5
+#define EXPONENT_MIN_SPEC 1
+
 #define CHEGADA 0
 #define PARTIDA 1
 #define BLOQUEA 2
@@ -63,6 +66,7 @@ struct simulacao {
     double min_delay;
     double max_delay;
     double pior_previsao;
+    double pior_previsao2;
     double call_duration[MEAN_WINDOW];
 };
 
@@ -70,12 +74,14 @@ int print_hist(char * csv_file);
 void *print_prog( void * data_ptr);
 void print_csv(int * hist, int hist_size ,char * csv_file, double inicio);
 int parse_input2(int argc, char** argv, struct simulacao *simulacao_atual);
-int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual);
+int parse_input3(int argc, char** argv, struct simulacao *simulacao_atual,struct simulacao *simulacao_especial);
 double gerarEvento2(struct simulacao *simulacao_atual, double ultima_chegada, double *delay);
-double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, double *delay, double* hist_delay, double *hist_previsao);
+double gerarChamada(struct simulacao *simulacao_atual, double ultima_chegada, double *delay, double * hist_delay, double * hist_previsao, struct simulacao *simulacao_especial);
+double gerarChamadaEspecial(struct simulacao *simulacao_atual, double ultima_chegada, double chegada_recurso);
 unsigned int factorial(unsigned int n);
 //double windowAverage(double *callDuration, double lastDelay,int windowSize);
 double average(double valorAtual);
+double average2(double valorAtual);
 //double average(double *callDuration, int windowSize);
 void print_csv2(double * hist, int hist_size ,char * csv_file);
 
